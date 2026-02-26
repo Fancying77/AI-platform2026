@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   Circle,
 } from 'lucide-react';
-import { useApp } from '../store/AppContext';
+import { useApp, getPRDDraftKey } from '../store/AppContext';
 import { useHeaderSlot } from '../store/HeaderSlotContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Celebration from '../components/Celebration';
@@ -38,7 +38,7 @@ interface PRDCreateLocationState {
 
 const STEPS = [
   { id: 1, label: '编辑', icon: FileText },
-  { id: 2, label: '审查', icon: CheckCircle2 },
+  { id: 2, label: 'AI检测', icon: CheckCircle2 },
   { id: 3, label: '导出', icon: Copy },
 ] as const;
 
@@ -49,6 +49,7 @@ export const PRDCreate = () => {
   const { setHeaderSlot, clearHeaderSlot } = useHeaderSlot();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const locationState = location.state as PRDCreateLocationState | null;
   const editPRD = locationState?.editPRD;
@@ -96,7 +97,7 @@ export const PRDCreate = () => {
         </>
       ),
       right: (
-        <div className="flex items-center gap-0.5">
+        <div className={`flex items-center gap-0.5 ${isReviewOpen || isExportOpen ? 'pointer-events-none opacity-50' : ''}`}>
           {STEPS.map((step, i) => (
             <div key={step.id} className="flex items-center">
               <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${step.id === currentStep ? 'bg-primary/10 text-primary' : step.id < currentStep ? 'text-green-600' : 'text-text-tertiary'}`}>
@@ -109,7 +110,7 @@ export const PRDCreate = () => {
         </div>
       ),
     });
-  }, [requirementName, selectedProjectId, currentStep, projectList, navigate, setHeaderSlot, setPrdTitle]);
+  }, [requirementName, selectedProjectId, currentStep, isReviewOpen, isExportOpen, projectList, navigate, setHeaderSlot, setPrdTitle]);
 
   useEffect(() => () => clearHeaderSlot(), [clearHeaderSlot]);
 
@@ -143,6 +144,32 @@ export const PRDCreate = () => {
     }
     return undefined;
   }, [isReviewOpen]);
+
+  // 草稿恢复（仅新建模式）
+  useEffect(() => {
+    if (isEditMode) return;
+    const saved = localStorage.getItem(getPRDDraftKey());
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (d.requirementName) setRequirementName(d.requirementName);
+      if (d.requirement) { setRequirement(d.requirement); setPrdContent(d.requirement); }
+      if (d.selectedProjectId) setSelectedProjectId(d.selectedProjectId);
+      if (d.priority) setPriority(d.priority);
+      if (d.selectedModel) setSelectedModel(d.selectedModel);
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 草稿自动保存（节流 1s，仅新建模式）
+  useEffect(() => {
+    if (isEditMode) return;
+    if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
+    draftSaveTimerRef.current = setTimeout(() => {
+      localStorage.setItem(getPRDDraftKey(), JSON.stringify({ requirementName, requirement, selectedProjectId, priority, selectedModel, updatedAt: new Date().toISOString() }));
+    }, 1000);
+    return () => { if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current); };
+  }, [requirementName, requirement, selectedProjectId, priority, selectedModel, isEditMode]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -179,13 +206,21 @@ export const PRDCreate = () => {
   const handleInsertAIReply = () => {
     if (!aiReply) return;
     const el = textareaRef.current;
+    let newContent: string;
     if (el && el.selectionStart !== el.selectionEnd) {
-      const newContent = requirement.slice(0, el.selectionStart) + aiReply.content + requirement.slice(el.selectionEnd);
-      setRequirement(newContent); setPrdContent(newContent);
+      // 策略1：选区替换
+      newContent = requirement.slice(0, el.selectionStart) + aiReply.content + requirement.slice(el.selectionEnd);
+    } else if (el && el.selectionStart > 0 && el.selectionStart < requirement.length) {
+      // 策略2：段落替换（光标所在段落）
+      const cursor = el.selectionStart;
+      const paraStart = (() => { const i = requirement.lastIndexOf('\n\n', cursor - 1); return i === -1 ? 0 : i + 2; })();
+      const paraEnd = (() => { const i = requirement.indexOf('\n\n', cursor); return i === -1 ? requirement.length : i; })();
+      newContent = requirement.slice(0, paraStart) + aiReply.content + requirement.slice(paraEnd);
     } else {
-      const newContent = requirement + '\n\n' + aiReply.content;
-      setRequirement(newContent); setPrdContent(newContent);
+      // 策略3：追加末尾
+      newContent = requirement + '\n\n' + aiReply.content;
     }
+    setRequirement(newContent); setPrdContent(newContent);
     setAiReply(null);
     showToast('success', '已插入到编辑器');
   };
@@ -216,13 +251,14 @@ export const PRDCreate = () => {
   };
 
   const handleReviewPass = () => {
-    if (reviewItems.some(item => item.status === 'fix')) { showToast('warning', '请先修复所有「必须修复」项后再提交'); return; }
+    if (fixCount > 0) showToast('warning', `有 ${fixCount} 项建议修复，已忽略继续提交`);
     const payload = { title: prdTitle || requirementName || '未命名需求', description: requirement.slice(0, 100), content: prdContent || requirement, status: 'completed' as const, projectId: selectedProjectId, requirementName: requirementName || undefined, priority, source: undefined };
     if (isEditMode && editPRD) {
       if (editPRD.governanceStatus === 'frozen') { setPendingVersion(payload); setIsChangeRequestOpen(true); setIsReviewOpen(false); return; }
       createPRDVersion(editPRD.id, payload, { summary: '编辑更新' }); showToast('success', 'PRD 已更新');
     } else {
       addPRD(payload);
+      localStorage.removeItem(getPRDDraftKey());
       const milestone = checkMilestone('prd', prdList.length + 1);
       showToast('success', milestone ? milestone.message : 'PRD 已保存');
       setShowCelebration(true);
@@ -294,7 +330,7 @@ export const PRDCreate = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-base font-semibold text-text-primary">需求智能审查</h2>
+              <h2 className="text-base font-semibold text-text-primary">需求 AI 检测</h2>
               <p className="text-xs text-text-tertiary mt-0.5">{prdTitle}</p>
             </div>
             <div className="flex-1 overflow-auto p-6">

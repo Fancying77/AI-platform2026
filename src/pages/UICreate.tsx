@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   Circle,
 } from 'lucide-react';
-import { useApp } from '../store/AppContext';
+import { useApp, getUIDraftKey } from '../store/AppContext';
 import { useHeaderSlot } from '../store/HeaderSlotContext';
 import Celebration from '../components/Celebration';
 import { ChangeRequestDialog } from '../components/versioning/ChangeRequestDialog';
@@ -73,12 +73,116 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 </body></html>`;
 
+const mockDashboardHTML = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fa;display:flex;min-height:100vh}
+.sidebar{width:200px;background:#1e293b;color:#fff;padding:20px 0;flex-shrink:0}
+.sidebar .logo{padding:0 20px 20px;font-size:15px;font-weight:700;color:#4D83FF;border-bottom:1px solid #334155}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:#94a3b8;cursor:pointer}
+.nav-item.active,.nav-item:hover{background:#334155;color:#fff}
+.main{flex:1;padding:24px;overflow:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.stat-card .label{font-size:12px;color:#64748b;margin-bottom:8px}
+.stat-card .value{font-size:22px;font-weight:700;color:#1e293b}
+.stat-card .change{font-size:11px;color:#22c55e;margin-top:4px}
+.chart-area{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.chart-area h3{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:16px}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px}
+.bar{flex:1;background:linear-gradient(to top,#4D83FF,#6C5CE7);border-radius:4px 4px 0 0}
+.bar-labels{display:flex;gap:8px;margin-top:8px}
+.bar-labels span{flex:1;text-align:center;font-size:10px;color:#94a3b8}
+</style></head><body>
+<div class="sidebar">
+<div class="logo">📊 数据中心</div>
+<div class="nav-item active">🏠 首页</div>
+<div class="nav-item">📈 数据分析</div>
+<div class="nav-item">👥 用户管理</div>
+<div class="nav-item">📋 报表中心</div>
+<div class="nav-item">⚙️ 系统设置</div>
+</div>
+<div class="main">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px"><h1 style="font-size:18px;font-weight:600;color:#1e293b">数据概览</h1><span style="font-size:12px;color:#64748b">2026-02-26</span></div>
+<div class="stats">
+<div class="stat-card"><div class="label">今日访问</div><div class="value">12,847</div><div class="change">↑ 12.5%</div></div>
+<div class="stat-card"><div class="label">新增用户</div><div class="value">1,234</div><div class="change">↑ 8.3%</div></div>
+<div class="stat-card"><div class="label">转化率</div><div class="value">3.8%</div><div class="change">↑ 0.5%</div></div>
+<div class="stat-card"><div class="label">营收</div><div class="value">¥89,420</div><div class="change">↑ 15.2%</div></div>
+</div>
+<div class="chart-area">
+<h3>近7日访问趋势</h3>
+<div class="bar-chart">
+<div class="bar" style="height:60%"></div><div class="bar" style="height:75%"></div><div class="bar" style="height:55%"></div>
+<div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div><div class="bar" style="height:85%"></div>
+<div class="bar" style="height:100%"></div>
+</div>
+<div class="bar-labels"><span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span></div>
+</div>
+</div>
+</body></html>`;
+
+const mockRegisterHTML = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;justify-content:center;align-items:center;min-height:100vh}
+.card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.15);width:400px;padding:36px}
+h2{font-size:20px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.subtitle{font-size:13px;color:#64748b;margin-bottom:24px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px}
+.field input{width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#4D83FF}
+.btn{width:100%;padding:12px;background:linear-gradient(135deg,#4D83FF,#6C5CE7);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px}
+.login-link{text-align:center;margin-top:14px;font-size:12px;color:#64748b}
+.login-link a{color:#4D83FF;text-decoration:none;font-weight:500}
+</style></head><body>
+<div class="card">
+<h2>创建账号</h2>
+<p class="subtitle">加入我们，开始您的旅程</p>
+<div class="row">
+<div class="field"><label>姓名</label><input type="text" placeholder="请输入姓名"></div>
+<div class="field"><label>昵称</label><input type="text" placeholder="设置昵称"></div>
+</div>
+<div class="field"><label>邮箱</label><input type="email" placeholder="请输入邮箱地址"></div>
+<div class="field"><label>手机号</label><input type="tel" placeholder="请输入手机号"></div>
+<div class="field"><label>密码</label><input type="password" placeholder="设置密码（8位以上）"></div>
+<div class="field"><label>确认密码</label><input type="password" placeholder="再次输入密码"></div>
+<button class="btn">立即注册</button>
+<div class="login-link">已有账号？<a href="#">立即登录</a></div>
+</div>
+</body></html>`;
+
+const selectTemplate = (message: string): string => {
+  const msg = message.toLowerCase();
+  if (msg.includes('注册') || msg.includes('register') || msg.includes('signup')) return mockRegisterHTML;
+  if (msg.includes('首页') || msg.includes('dashboard') || msg.includes('主页') || msg.includes('仪表') || msg.includes('数据')) return mockDashboardHTML;
+  return mockLoginHTML;
+};
+
+const applyColorAdjustment = (html: string, message: string): string => {
+  const colorMap: Record<string, string> = {
+    '绿色': '#22c55e', '蓝色': '#3b82f6', '红色': '#ef4444',
+    '橙色': '#f97316', '紫色': '#8b5cf6', '黄色': '#eab308',
+  };
+  for (const [keyword, color] of Object.entries(colorMap)) {
+    if (message.includes(keyword)) {
+      return html.replace(/#4D83FF/g, color).replace(/#6C5CE7/g, color);
+    }
+  }
+  return html;
+};
+
 export const UICreate = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showToast, addUIDesign, prdList, uiDesignList, projectList, createUIDesignVersion } = useApp();
   const { setHeaderSlot, clearHeaderSlot } = useHeaderSlot();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const locationState = location.state as UICreateLocationState | null;
   const linkedPRD = locationState;
@@ -120,7 +224,7 @@ export const UICreate = () => {
         </>
       ),
       right: (
-        <div className="flex items-center gap-0.5">
+        <div className={`flex items-center gap-0.5 ${isExportOpen ? 'pointer-events-none opacity-50' : ''}`}>
           {STEPS.map((step, i) => (
             <div key={step.id} className="flex items-center">
               <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${step.id === currentStep ? 'bg-primary/10 text-primary' : step.id < currentStep ? 'text-green-600' : 'text-text-tertiary'}`}>
@@ -133,7 +237,7 @@ export const UICreate = () => {
         </div>
       ),
     });
-  }, [selectedPRD, selectedProjectId, currentStep, prdList, projectList, navigate, setHeaderSlot]);
+  }, [selectedPRD, selectedProjectId, currentStep, isExportOpen, prdList, projectList, navigate, setHeaderSlot]);
 
   useEffect(() => () => clearHeaderSlot(), [clearHeaderSlot]);
 
@@ -141,7 +245,7 @@ export const UICreate = () => {
     if (editUIDesign) {
       setRequirement(editUIDesign.description);
       setSelectedPRD(editUIDesign.prdId || '');
-      setHtmlCode(mockLoginHTML);
+      setHtmlCode(editUIDesign.htmlContent || mockLoginHTML);
     }
   }, [editUIDesign]);
 
@@ -149,19 +253,50 @@ export const UICreate = () => {
     if (linkedPRD?.requirement && !isEditMode) setRequirement(linkedPRD.requirement);
   }, [linkedPRD, isEditMode]);
 
+  // 草稿恢复（仅新建模式）
+  useEffect(() => {
+    if (isEditMode) return;
+    const saved = localStorage.getItem(getUIDraftKey());
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (d.htmlCode) setHtmlCode(d.htmlCode);
+      if (d.requirement) setRequirement(d.requirement);
+      if (d.selectedPRD) setSelectedPRD(d.selectedPRD);
+      if (d.selectedProjectId) setSelectedProjectId(d.selectedProjectId);
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 草稿自动保存（节流 1s，仅新建模式）
+  useEffect(() => {
+    if (isEditMode) return;
+    if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
+    draftSaveTimerRef.current = setTimeout(() => {
+      localStorage.setItem(getUIDraftKey(), JSON.stringify({ htmlCode, requirement, selectedPRD, selectedProjectId, updatedAt: new Date().toISOString() }));
+    }, 1000);
+    return () => { if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current); };
+  }, [htmlCode, requirement, selectedPRD, selectedProjectId, isEditMode]);
+
   const handleSendMessage = async (message: string) => {
     setIsChatLoading(true);
     if (!htmlCode) {
       setIsGenerating(true);
       await new Promise(resolve => setTimeout(resolve, 2000));
-      setHtmlCode(mockLoginHTML);
+      setHtmlCode(selectTemplate(message));
       setRequirement(message);
       setIsGenerating(false);
       setAiReply({ content: `设计方案已生成。您可以继续描述需要调整的地方，例如：\n- "把主按钮颜色改成绿色"\n- "增加一个返回按钮"\n- "调整标题字号大一些"` });
       showToast('success', 'UI设计已生成');
     } else {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      setAiReply({ content: `好的，已根据您的要求"${message}"进行了调整。请查看预览效果。` });
+      const updated = applyColorAdjustment(htmlCode, message);
+      if (updated !== htmlCode) {
+        setHtmlCode(updated);
+        setAiReply({ content: `好的，已根据您的要求调整了颜色。请查看预览效果。` });
+      } else {
+        setAiReply({ content: `好的，已根据您的要求"${message}"进行了调整。请查看预览效果。` });
+      }
     }
     setIsChatLoading(false);
   };
@@ -180,12 +315,13 @@ export const UICreate = () => {
   const handleNextStep = () => {
     if (!htmlCode) { showToast('warning', '请先生成设计方案'); return; }
     const prd = prdList.find(p => p.id === selectedPRD);
-    const designPayload = { title: `${requirement.slice(0, 20)}...设计`, description: requirement, prdId: selectedPRD || undefined, prdTitle: prd?.title, projectId: selectedProjectId, status: 'completed' as const, tool: 'HTML' };
+    const designPayload = { title: `${requirement.slice(0, 20)}...设计`, description: requirement, prdId: selectedPRD || undefined, prdTitle: prd?.title, projectId: selectedProjectId, status: 'completed' as const, tool: 'HTML', htmlContent: htmlCode };
     if (isEditMode && editUIDesign) {
       if (editUIDesign.governanceStatus === 'frozen') { setPendingVersion(designPayload); setIsChangeRequestOpen(true); return; }
       createUIDesignVersion(editUIDesign.id, designPayload, { summary: '编辑更新' }); showToast('success', 'UI设计已更新');
     } else {
       addUIDesign(designPayload);
+      localStorage.removeItem(getUIDraftKey());
       const milestone = checkMilestone('ui', uiDesignList.length + 1);
       showToast('success', milestone ? milestone.message : 'UI设计已保存');
       setShowCelebration(true);

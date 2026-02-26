@@ -44,6 +44,7 @@ export interface UIDesignVersion extends VersionBase {
   tool: string;
   thumbnail?: string;
   componentTree?: string;
+  htmlContent?: string;
 }
 
 export interface ProjectVersion extends VersionBase {
@@ -83,6 +84,7 @@ export interface UIDesignItem {
   status: 'in_progress' | 'completed';
   tool: string;
   thumbnail?: string;
+  htmlContent?: string;
   createdAt: string;
   updatedAt?: string;
   currentVersionId: string;

@@ -16,7 +16,7 @@ import type {
 } from '../types';
 
 // localStorage keys
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   PRD_LIST: 'lexin_prd_list',
   UI_DESIGN_LIST: 'lexin_ui_design_list',
   PROJECT_LIST: 'lexin_project_list',
@@ -25,7 +25,12 @@ const STORAGE_KEYS = {
   DASHBOARD_ACHIEVEMENTS: 'lexin_dashboard_achievements',
   DASHBOARD_LEADERBOARD: 'lexin_dashboard_leaderboard',
   DASHBOARD_USER_STATS: 'lexin_dashboard_user_stats',
+  PRD_DRAFT_PREFIX: 'lexin_draft_prd_',
+  UI_DRAFT_PREFIX: 'lexin_draft_ui_',
 };
+
+export const getPRDDraftKey = (id?: string): string => `${STORAGE_KEYS.PRD_DRAFT_PREFIX}${id || 'new'}`;
+export const getUIDraftKey = (id?: string): string => `${STORAGE_KEYS.UI_DRAFT_PREFIX}${id || 'new'}`;
 
 const DEFAULT_GOVERNANCE_STATUS: GovernanceStatus = 'draft';
 const DEFAULT_ACTOR = '系统';
@@ -52,7 +57,7 @@ interface AppContextType {
   deleteUIDesign: (id: string) => void;
   createUIDesignVersion: (
     id: string,
-    next: Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail'> & { componentTree?: string },
+    next: Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail' | 'htmlContent'> & { componentTree?: string },
     options?: { changeRequest?: ChangeRequestInput; summary?: string }
   ) => void;
   setUIDesignGovernanceStatus: (id: string, status: GovernanceStatus) => void;
@@ -90,7 +95,7 @@ interface ChangeRequestInput {
 
 type PRDInput = Pick<PRDItem, 'title' | 'description' | 'content' | 'status' | 'projectId' | 'requirementName' | 'priority' | 'source'>;
 
-type UIDesignInput = Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail'>;
+type UIDesignInput = Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail' | 'htmlContent'>;
 
 type ProjectInput = Pick<ProjectItem, 'title' | 'description' | 'status' | 'members'>;
 
@@ -925,7 +930,7 @@ const buildPRDVersion = (
 });
 
 const buildUIDesignVersion = (
-  base: Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail'> & { componentTree?: string },
+  base: Pick<UIDesignItem, 'title' | 'description' | 'status' | 'tool' | 'prdId' | 'prdTitle' | 'projectId' | 'thumbnail' | 'htmlContent'> & { componentTree?: string },
   version: number,
   createdBy: string,
   summary: string,
@@ -947,6 +952,7 @@ const buildUIDesignVersion = (
   tool: base.tool,
   thumbnail: base.thumbnail,
   componentTree: base.componentTree,
+  htmlContent: base.htmlContent,
 });
 
 const buildProjectVersion = (
@@ -1107,6 +1113,33 @@ function saveToStorage<T>(key: string, value: T): void {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error(`Error saving ${key} to localStorage:`, error);
+  }
+}
+
+export function loadDraftFromStorage<T>(key: string): T | null {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    return JSON.parse(stored) as T;
+  } catch (error) {
+    console.error(`Error loading draft ${key} from localStorage:`, error);
+    return null;
+  }
+}
+
+export function saveDraftToStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving draft ${key} to localStorage:`, error);
+  }
+}
+
+export function clearDraftFromStorage(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error clearing draft ${key} from localStorage:`, error);
   }
 }
 
