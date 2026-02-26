@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './store/AppContext';
+import { HeaderSlotProvider } from './store/HeaderSlotContext';
 import MainLayout from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import PRDList from './pages/PRDList';
@@ -16,6 +17,7 @@ import AINewsFavorites from './pages/AINewsFavorites';
 export const App = () => {
   return (
     <AppProvider>
+      <HeaderSlotProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MainLayout />}>
@@ -34,6 +36,7 @@ export const App = () => {
           </Route>
         </Routes>
       </BrowserRouter>
+      </HeaderSlotProvider>
     </AppProvider>
   );
 };

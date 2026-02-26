@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { User, LogOut, Clock, Zap, Trophy, ChevronDown } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import { useHeaderSlot } from '../store/HeaderSlotContext';
 
 const titleMap: Record<string, string> = {
   '/dashboard': '工作台',
@@ -20,6 +21,7 @@ const BC = '#EDEDEE';
 export default function Header() {
   const location = useLocation();
   const { userInfo } = useApp();
+  const { left: slotLeft, right: slotRight } = useHeaderSlot();
 
   const [showUsage, setShowUsage] = useState(false);
   const [showToken, setShowToken] = useState(false);
@@ -56,10 +58,14 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6">
-      <h1 className="text-xl font-semibold text-text-primary">{getTitle()}</h1>
+    <header className="h-12 bg-white border-b border-border flex items-center justify-between px-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <h1 className="text-base font-semibold text-text-primary whitespace-nowrap">{getTitle()}</h1>
+        {slotLeft && <div className="flex items-center gap-2 min-w-0">{slotLeft}</div>}
+      </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
+        {slotRight && <>{slotRight}<div className="w-px h-5 mx-1" style={{ backgroundColor: BC }} /></>}
         {/* 使用时长 */}
         <div className="relative" ref={usageRef}>
           <button onClick={() => { closeAll(); setShowUsage(v => !v); }} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-sm hover:bg-gray-50" style={{ border: `1px solid ${BC}` }}>
