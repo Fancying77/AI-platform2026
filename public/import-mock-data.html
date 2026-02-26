@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导入Mock数据 - 乐信产品AI工作平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #1a202c;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .info-box {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .info-box h3 {
+      color: #2c5282;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .info-box ul {
+      color: #2d3748;
+      font-size: 14px;
+      line-height: 1.8;
+      padding-left: 20px;
+    }
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
+    .btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
+    .result {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .result.success { background: #f0fff4; border: 1px solid #9ae6b4; color: #22543d; }
+    .result.error { background: #fff5f5; border: 1px solid #fc8181; color: #742a2a; }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📦 导入Mock数据</h1>
+    <p class="subtitle">从TAPD系统提取的真实需求数据</p>
+
+    <div class="info-box">
+      <h3>数据内容</h3>
+      <ul>
+        <li><strong>4个项目</strong>：客服系统、触达平台、管户工作台、外呼平台</li>
+        <li><strong>13个需求</strong>：涵盖客服、触达、管户等业务线</li>
+        <li><strong>数据来源</strong>：TAPD真实需求</li>
+      </ul>
+    </div>
+
+    <button class="btn" id="importBtn" onclick="importData()">
+      <span id="btnText">开始导入</span>
+    </button>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="./mock-data.js"></script>
+  <script>
+    function importData() {
+      const btn = document.getElementById('importBtn');
+      const btnText = document.getElementById('btnText');
+      const resultDiv = document.getElementById('result');
+
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> 正在导入...';
+      resultDiv.innerHTML = '';
+
+      setTimeout(() => {
+        try {
+          const existingProjects = JSON.parse(localStorage.getItem('lexin_project_list') || '[]');
+          const newProjects = [...window.mockProjects, ...existingProjects];
+          localStorage.setItem('lexin_project_list', JSON.stringify(newProjects));
+
+          const existingPRDs = JSON.parse(localStorage.getItem('lexin_prd_list') || '[]');
+          const newPRDs = [...window.mockPRDs, ...existingPRDs];
+          localStorage.setItem('lexin_prd_list', JSON.stringify(newPRDs));
+
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <strong>✅ 导入成功！</strong><br><br>
+            已成功导入：<br>
+            • 项目：${window.mockProjects.length} 个<br>
+            • 需求：${window.mockPRDs.length} 个<br><br>
+            <strong>3秒后自动跳转...</strong>
+          `;
+
+          setTimeout(() => { window.location.href = '/'; }, 3000);
+        } catch (error) {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `<strong>❌ 导入失败</strong><br><br>${error.message}`;
+          btn.disabled = false;
+          btnText.textContent = '重试导入';
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

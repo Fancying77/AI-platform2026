@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导入Mock数据 - 乐信产品AI工作平台</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #1a202c;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .info-box {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .info-box h3 {
+      color: #2c5282;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .info-box ul {
+      color: #2d3748;
+      font-size: 14px;
+      line-height: 1.8;
+      padding-left: 20px;
+    }
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .btn:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .result.success {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      color: #22543d;
+    }
+    .result.error {
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      color: #742a2a;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      导入Mock数据
+    </h1>
+    <p class="subtitle">从TAPD系统提取的真实需求数据</p>
+
+    <div class="info-box">
+      <h3>📦 数据内容</h3>
+      <ul>
+        <li><strong>4个项目</strong>：客服系统优化、触达平台建设、管户工作台、外呼平台</li>
+        <li><strong>13个需求</strong>：涵盖客服、触达、管户等多个业务线</li>
+        <li><strong>数据来源</strong>：TAPD真实需求（ID: 1413338, 1413329等）</li>
+      </ul>
+    </div>
+
+    <div class="info-box" style="background: #fffaf0; border-color: #fbd38d;">
+      <h3 style="color: #744210;">⚠️ 注意事项</h3>
+      <ul style="color: #744210;">
+        <li>导入的数据将<strong>添加</strong>到现有数据中，不会覆盖</li>
+        <li>导入成功后页面会自动跳转到首页</li>
+        <li>如需清空数据，请在浏览器开发者工具中清除localStorage</li>
+      </ul>
+    </div>
+
+    <button class="btn" id="importBtn" onclick="importData()">
+      <span id="btnText">开始导入</span>
+    </button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const getTodayString = () => new Date().toISOString().split('T')[0];
+
+    // Mock数据
+    const mockProjects = [
+      {
+        id: 'proj-kefu',
+        title: '客服系统优化',
+        description: '新客服系统功能迭代，包括chatbot机器人、防黑灰产、听音功能等模块的优化升级',
+        status: 'in_progress',
+        members: ['cancanli(李灿灿)', 'kriswu(吴泽平)', 'lilywang(王莉萍)'],
+        createdAt: '2024-12-01',
+        updatedAt: getTodayString(),
+      },
+      {
+        id: 'proj-chuda',
+        title: '触达平台建设',
+        description: 'IM站内通知、短信、push等多渠道触达能力建设，支持模板管理和灰度放量',
+        status: 'in_progress',
+        members: ['cancanli(李灿灿)', 'tomzhang(张涛)', 'lucychen(陈露西)'],
+        createdAt: '2024-11-15',
+        updatedAt: getTodayString(),
+      },
+      {
+        id: 'proj-guanhu',
+        title: '管户工作台',
+        description: '管户坐席工作台功能优化，包括企微客户管理、IM消息、用户信息展示等功能',
+        status: 'in_progress',
+        members: ['cancanli(李灿灿)', 'kriswu(吴泽平)', 'amylin(林艾米)'],
+        createdAt: '2024-11-20',
+        updatedAt: getTodayString(),
+      },
+      {
+        id: 'proj-waihu',
+        title: '外呼平台',
+        description: '外呼系统功能建设，支持智能外呼、通话记录、质检等功能',
+        status: 'planning',
+        members: ['cancanli(李灿灿)', 'jackwu(吴杰克)'],
+        createdAt: '2024-12-10',
+        updatedAt: getTodayString(),
+      },
+    ];
+
+    const mockPRDs = [
+      {
+        id: 'prd-1413338',
+        title: 'chatbot机器人区分是否管户流量',
+        description: '实现chatbot机器人对管户流量和非管户流量的区分识别和差异化处理',
+        content: `## 需求背景
+当前chatbot机器人无法区分用户是否为管户流量，导致服务策略无法差异化。
+
+## 需求目标
+- 实现流量类型识别：管户流量 vs 非管户流量
+- 支持差异化的机器人应答策略
+- 提升管户用户的服务体验
+
+## 功能需求
+### 1. 流量识别
+- 接入用户标签系统，获取用户管户状态
+- 在会话开始时判断流量类型
+- 记录流量类型到会话日志
+
+### 2. 差异化策略
+- 管户流量：优先级更高，快速转人工
+- 非管户流量：标准机器人流程
+
+## 技术方案
+- 调用用户中心API获取管户标签
+- 在chatbot路由层增加流量类型判断逻辑
+- 配置不同流量类型的应答策略
+
+## 验收标准
+- 流量识别准确率 > 99%
+- 管户流量转人工时长 < 30s
+- 非管户流量机器人解决率 > 60%`,
+        status: 'in_progress',
+        projectId: 'proj-kefu',
+        createdAt: '2025-01-15',
+        priority: 'P0',
+        source: 'TAPD-1413338',
+        requirementName: 'chatbot流量区分',
+      },
+      {
+        id: 'prd-1413329',
+        title: '【新客服系统】顶部信息区增加提还转单标签',
+        description: '在客服工作台顶部信息区增加提额、还款、转单等关键业务标签展示',
+        content: `## 需求背景
+客服在处理用户咨询时，需要快速了解用户的提额、还款、转单等关键业务状态，当前信息展示不够直观。
+
+## 需求目标
+- 在顶部信息区增加业务标签展示
+- 提升客服工作效率
+- 减少信息查询时间
+
+## 功能需求
+### 1. 标签类型
+- 提额标签：显示用户提额申请状态（待审核/已通过/已拒绝）
+- 还款标签：显示用户还款状态（正常/逾期/已结清）
+- 转单标签：显示工单转派状态（待接收/处理中/已完成）
+
+### 2. 展示规则
+- 标签颜色区分：绿色（正常）、黄色（待处理）、红色（异常）
+- 鼠标悬停显示详细信息
+- 点击标签跳转到对应业务详情页
+
+## UI设计
+- 标签位置：顶部信息区右侧
+- 标签样式：圆角矩形，带图标
+- 标签大小：高度24px，宽度自适应
+
+## 验收标准
+- 标签信息实时更新，延迟 < 2s
+- 标签点击跳转准确率 100%
+- 支持最多展示5个标签`,
+        status: 'in_progress',
+        projectId: 'proj-kefu',
+        createdAt: '2025-01-14',
+        priority: 'P0',
+        source: 'TAPD-1413329',
+        requirementName: '顶部信息区标签',
+      },
+      // 更多PRD数据...
+    ];
+
+    function importData() {
+      const btn = document.getElementById('importBtn');
+      const btnText = document.getElementById('btnText');
+      const resultDiv = document.getElementById('result');
+
+      // 禁用按钮
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> 正在导入...';
+      resultDiv.innerHTML = '';
+
+      setTimeout(() => {
+        try {
+          // 导入项目数据
+          const existingProjects = JSON.parse(localStorage.getItem('lexin_project_list') || '[]');
+          const newProjects = [...mockProjects, ...existingProjects];
+          localStorage.setItem('lexin_project_list', JSON.stringify(newProjects));
+
+          // 导入PRD数据
+          const existingPRDs = JSON.parse(localStorage.getItem('lexin_prd_list') || '[]');
+          const newPRDs = [...mockPRDs, ...existingPRDs];
+          localStorage.setItem('lexin_prd_list', JSON.stringify(newPRDs));
+
+          // 显示成功消息
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <strong>✅ 导入成功！</strong><br><br>
+            已成功导入以下数据：<br>
+            • 项目数量：${mockProjects.length} 个<br>
+            • 需求数量：${mockPRDs.length} 个<br><br>
+            <strong>3秒后自动跳转到首页...</strong>
+          `;
+
+          // 3秒后跳转
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
+
+        } catch (error) {
+          // 显示错误消息
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <strong>❌ 导入失败</strong><br><br>
+            错误信息：${error.message}
+          `;
+          btn.disabled = false;
+          btnText.textContent = '重试导入';
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
