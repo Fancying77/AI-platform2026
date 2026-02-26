@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Copy,
   ChevronRight,
-  Save,
   ArrowLeft,
   FileText,
   CheckCircle2,
@@ -184,22 +183,23 @@ export const PRDCreate = () => {
     }
   };
 
-  const handleGenerate = async () => {
-    if (!requirement.trim()) { showToast('warning', '请先输入需求描述'); return; }
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const generatedPRD = `# ${requirementName || '需求文档'}\n\n## 1. 背景与目标\n${requirement}\n\n### 1.1 业务背景\n当前流程存在以下问题：\n- 操作步骤繁琐，用户流失率高\n- 不支持多种方式\n- 缺少状态记忆功能\n\n### 1.2 项目目标\n- 简化流程，减少用户操作步骤\n- 提升成功率至95%以上\n- 支持多种方式\n\n## 2. 目标用户\n- 新注册用户\n- 活跃用户\n- 流失用户\n\n## 3. 功能需求\n\n### 3.1 核心功能\n- 功能点 A\n- 功能点 B\n- 功能点 C\n\n## 4. 非功能需求\n- 接口响应时间 < 500ms\n- 支持高并发场景\n- 兼容主流浏览器\n\n## 5. 验收标准\n- [ ] 流程步骤不超过3步\n- [ ] 支持所有主流浏览器\n- [ ] 成功率 ≥ 95%\n`;
-    setRequirement(generatedPRD);
-    setPrdContent(generatedPRD);
-    if (!prdTitle) setPrdTitle(requirementName || '需求文档');
-    setIsGenerating(false);
-    showToast('success', '需求文档已生成');
-  };
-
   const handleSendAIMessage = async (message: string) => {
     setIsChatLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setAiReply({ content: `已理解您的需求："${message}"。\n\n建议的调整内容：\n- 在「功能需求」章节补充该场景的详细描述\n- 增加对应的验收标准\n- 补充相关埋点定义` });
+    if (!prdContent) {
+      // 首次发送：生成 PRD
+      setIsGenerating(true);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const generatedPRD = `# ${requirementName || '需求文档'}\n\n## 1. 背景与目标\n${message}\n\n### 1.1 业务背景\n当前流程存在以下问题：\n- 操作步骤繁琐，用户流失率高\n- 不支持多种方式\n- 缺少状态记忆功能\n\n### 1.2 项目目标\n- 简化流程，减少用户操作步骤\n- 提升成功率至95%以上\n- 支持多种方式\n\n## 2. 目标用户\n- 新注册用户\n- 活跃用户\n- 流失用户\n\n## 3. 功能需求\n\n### 3.1 核心功能\n- 功能点 A\n- 功能点 B\n- 功能点 C\n\n## 4. 非功能需求\n- 接口响应时间 < 500ms\n- 支持高并发场景\n- 兼容主流浏览器\n\n## 5. 验收标准\n- [ ] 流程步骤不超过3步\n- [ ] 支持所有主流浏览器\n- [ ] 成功率 ≥ 95%\n`;
+      setRequirement(generatedPRD);
+      setPrdContent(generatedPRD);
+      if (!prdTitle) setPrdTitle(requirementName || message.slice(0, 20));
+      setIsGenerating(false);
+      setAiReply({ content: '需求文档已生成！您可以继续描述需要调整的地方，或直接点击「下一步」进行 AI 检测。' });
+      showToast('success', '需求文档已生成');
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setAiReply({ content: `已理解您的需求："${message}"。\n\n建议的调整内容：\n- 在「功能需求」章节补充该场景的详细描述\n- 增加对应的验收标准\n- 补充相关埋点定义` });
+    }
     setIsChatLoading(false);
   };
 
@@ -287,7 +287,7 @@ export const PRDCreate = () => {
 
       {/* 主编辑区 — 占满剩余空间 */}
       <div className="flex-1 overflow-hidden relative min-h-0">
-        <textarea ref={textareaRef} value={requirement} onChange={(e) => { const v = e.target.value.slice(0, MAX_CHARS); setRequirement(v); if (prdContent) setPrdContent(v); }} placeholder={"请详细描述您的产品需求，包括背景、目标、功能点等...\n\n点击底部「生成PRD」按钮，AI 将自动扩展为完整的 PRD 文档"} className="w-full h-full px-8 py-4 resize-none focus:outline-none text-[15px] font-mono leading-[1.9] bg-white" />
+        <textarea ref={textareaRef} value={requirement} onChange={(e) => { const v = e.target.value.slice(0, MAX_CHARS); setRequirement(v); if (prdContent) setPrdContent(v); }} placeholder={isGenerating ? 'AI 正在生成需求文档...' : '在下方输入框描述你的需求，AI 将自动生成完整的 PRD 文档\n\n也可以直接在这里手动编写内容'} className="w-full h-full px-8 py-4 resize-none focus:outline-none text-[15px] font-mono leading-[1.9] bg-white" />
         <div className="absolute bottom-2 right-4 flex items-center gap-2">
           {prdContent && <span className="px-2 py-0.5 bg-primary-light text-primary text-xs rounded">已生成</span>}
           <span className="text-xs text-text-tertiary bg-white/80 px-1.5 py-0.5 rounded">{requirement.length}/{MAX_CHARS}</span>
@@ -298,7 +298,7 @@ export const PRDCreate = () => {
       <div className="shrink-0">
         <AIInputBar onSend={handleSendAIMessage} isLoading={isChatLoading} assistantName={AI_ASSISTANT.prd.name}
           aiReply={aiReply ? { content: aiReply.content, onInsert: handleInsertAIReply, onCopy: handleCopyReply } : null}
-          onDismissReply={() => setAiReply(null)} placeholder={`向 ${AI_ASSISTANT.prd.name} 提问，优化你的需求文档...`}
+          onDismissReply={() => setAiReply(null)} placeholder={prdContent ? `向 ${AI_ASSISTANT.prd.name} 提问，优化你的需求文档...` : `描述你的需求，${AI_ASSISTANT.prd.name} 将自动生成 PRD...`}
           leftActions={<>
             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 px-2 py-1 text-[11px] text-text-secondary border border-border rounded-md hover:border-primary hover:text-primary transition-colors"><Upload size={12} />参考图</button>
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
@@ -308,18 +308,11 @@ export const PRDCreate = () => {
                 <button onClick={() => setReferenceImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center"><Trash2 size={9} className="text-white" /></button>
               </div>
             ))}</div>}
-            <select value={priority} onChange={(e) => setPriority(e.target.value as 'P0' | 'P1' | 'P2' | 'P3')} className="px-1.5 py-1 text-[11px] border border-border rounded-md focus:outline-none focus:border-primary">
-              <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
-            </select>
             <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="px-1.5 py-1 text-[11px] border border-border rounded-md focus:outline-none focus:border-primary">
               {modelOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </>}
           rightActions={<>
-            <button onClick={() => showToast('success', '草稿已保存')} className="flex items-center gap-1 px-2 py-1 text-[11px] text-text-secondary border border-border rounded-md hover:border-primary hover:text-primary transition-colors"><Save size={12} />草稿</button>
-            <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center gap-1 px-2 py-1 text-[11px] bg-primary/10 text-primary rounded-md hover:bg-primary/20 disabled:opacity-50 transition-colors">
-              {isGenerating ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}{isGenerating ? '生成中...' : '生成PRD'}
-            </button>
             <button onClick={handleNextStep} className="flex items-center gap-1 px-3 py-1 text-[11px] bg-primary text-white rounded-md hover:bg-primary-hover transition-colors shadow-sm">下一步<ChevronRight size={12} /></button>
           </>}
         />

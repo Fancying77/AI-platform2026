@@ -34,10 +34,11 @@ export default function AIInputBar({
   // 自适应高度
   useEffect(() => {
     const el = textareaRef.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = Math.max(36, Math.min(el.scrollHeight, 120)) + 'px';
-    }
+    if (!el) return;
+    el.style.height = 'auto';
+    const next = Math.min(el.scrollHeight, 200);
+    el.style.height = next + 'px';
+    el.style.overflowY = el.scrollHeight > 200 ? 'auto' : 'hidden';
   }, [input]);
 
   const handleSend = () => {
@@ -91,7 +92,8 @@ export default function AIInputBar({
             }}
             placeholder={isLoading ? '思考中...' : placeholder}
             rows={1}
-            className="flex-1 min-w-0 px-3 py-2 text-sm border border-border rounded-lg resize-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-white transition-colors"
+            className="flex-1 min-w-0 px-3 py-2 text-sm border border-border rounded-lg resize-none overflow-hidden focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-white transition-colors"
+            style={{ minHeight: '36px', transition: 'height 0.1s ease' }}
           />
           <button
             onClick={handleSend}
